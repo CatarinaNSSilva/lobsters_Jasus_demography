@@ -1,0 +1,140 @@
+---
+title: "Jasus_lobster_demography"
+author: "Catarina Silva"
+date: "03/11/2020"
+output: html_document
+---
+
+```{r load libraries}
+
+library(adegenet)
+library(pegas)
+library(mmod)
+library(hierfstat)
+
+
+```
+
+
+```{r load vcf file}
+
+vcf_Jasus = read.vcf("./data/batch_1.vcf", which.loci = 1:1e6)
+dim(vcf_Jasus) #  375  indv, 2596 SNPs
+
+```
+
+
+```{r convert to genind }
+
+genind_Jasus = loci2genind(vcf_Jasus)
+summary_Jasus = summary(genind_Jasus)
+
+str(summary_Jasus)
+summary_Jasus$n.by.pop
+mean(summary_Jasus$Hobs) # 0.0810614
+mean(summary_Jasus$Hexp) # 0.2112944
+min(summary_Jasus$loc.n.all)
+max(summary_Jasus$loc.n.all)
+mean(summary_Jasus$NA.perc) # 4.986543
+
+```
+
+
+```{r }
+
+jasus_strata <- read.table("./data/strata_6spp_375indv.txt", header=TRUE)
+head(jasus_strata)
+dim(jasus_strata)
+
+strata(genind_Jasus) <- jasus_strata
+genind_Jasus
+
+setPop(genind_Jasus) = ~Pop
+str(genind_Jasus)
+
+
+summary_Jasus = summary(genind_Jasus) # 375 indv, 6 pops
+str(summary_Jasus)
+
+```
+
+
+```{r Allelic richness}
+
+
+jasus_hierfstat_6spp = genind2hierfstat(genind_Jasus)
+dim(jasus_hierfstat_6spp) #  375 2597
+jasus_hierfstat_6spp[1:5,1:5]
+allelic.richness_6spp = allelic.richness(jasus_hierfstat_6spp)
+str(allelic.richness_6spp)
+dim(allelic.richness_6spp$Ar)
+AR_matrix_6spp = as.data.frame(allelic.richness_6spp$Ar)
+str(AR_matrix_6spp)
+dim(AR_matrix_6spp)
+write.csv(AR_matrix_6spp, file = "./results/AR_matrix_6spp.csv")
+
+
+```
+
+
+```{r pairwise FST values, cache=TRUE }
+
+mat.obs = pairwise.fst(genind_Jasus, pop = NULL, res.type = c("dist", "matrix"))
+fst = as.matrix(mat.obs)
+write.csv(fst, file = "./results/FST_6spp.csv", row.names = T)
+
+
+# p-values
+
+NBPERM <- 999 #  number of permutations used for the p-values
+
+# mat.perm99 <- lapply(1:NBPERM, function(i) pairwise.fst(genind_Jasus, pop=sample(pop(genind_Jasus)), res.type="matrix"))
+
+# mat.obs contains original Fst values, mat.perm is a list with NPERM matrices of permuted 
+
+# mean = apply(simplify2array(mat.perm99), 1:2, mean)
+# write.csv(mean, file = "./results/FST_p-values_6spp.csv", row.names = T)
+
+
+
+```
+
+
+```{r DAPC}
+
+# grp_Jasus = find.clusters(genind_Jasus, max.n.clust=20) # retain 375 PCs, 5 clusters
+
+# dapc_Jasus = dapc(genind_Jasus, grp_Jasus$grp_Jasus) # retain 2 PCs, 5 functions
+
+
+# 2 PCs, $var = 0.5333699,  a-score = 0.6402536
+head(dapc_Jasus) # 
+dapc_Jasus$grp.coord
+dapc_Jasus$ind.coord
+dapc_Jasus$var.contr
+
+write.csv(dapc_Jasus$ind.coord, file="./results/DAPC_indv_coord_LD1_2.csv", col.names=T)
+write.csv(dapc_Jasus$ind.coord, file="./results/DAPC_indv_coord_LD1_4.csv", col.names=T)
+
+
+myCol6 <- c("red", "orchid4", "orange", "steelblue1",  "midnightblue", "springgreen4") 
+
+
+png("./figs/DAPC_Jasus_2PCs.png", width=30, height=20, units="cm",res=155,pointsize = 24)
+scatter(dapc_Jasus, scree.da=FALSE, bg="white", pch=20, cell=1.5, cstar=0,
+        cex=3,clab=0, leg=T, txt.leg=paste(c("JCA", "JED", "JFR", "JLA","JPA","JTR")), 
+        posi.leg = "bottomright", col=myCol6)
+dev.off()
+
+
+#  memb prob ####
+
+png("./figs/memb_prob_Jasus_2Pcs.png", width=50, height=30, units="cm",res=155,pointsize = 36)
+compoplot(dapc_Jasus, lab="", posi=list(x=12,y=-.01), cleg=.7, include.origin = TRUE, col=myCol6)
+dev.off()
+
+
+```
+
+
+
