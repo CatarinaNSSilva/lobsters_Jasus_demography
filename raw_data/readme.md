@@ -5,7 +5,7 @@ Download demultiplexed sequencing data not hosted on github due to size constrai
 
 ```{r }
 
-wget https://cloudstor.aarnet.edu.au
+wget https://cloudstor.aarnet.edu.au/plus/s/W33NkT28rogVc0g
 
 ```
 
